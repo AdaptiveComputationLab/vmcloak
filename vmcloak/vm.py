@@ -238,3 +238,142 @@ class VirtualBox(Machinery):
             vendorurl="http://cuckoosandbox.org/",
             description="Cuckoo Sandbox Virtual Machine created by VMCloak",
         )
+
+class KVM(Machinery):
+    """Virtualization layer for KVM using libvirt utility."""
+    FIELDS = {}
+
+    def __init__(self, vmx_path, *args, **kwargs):
+        Machinery.__init__(self, *args, **kwargs)
+        self.virsh = get_path("virsh")
+
+    def _call(self, *args, **kwargs):
+        cmd = list(args)
+
+        for k, v in kwargs.items():
+            if v is None or v is True:
+                cmd += ["--" + k]
+            else:
+                cmd += ["--" + k.rstrip("_"), str(v)]
+
+        try:
+            log.debug("Running command: %s", cmd)
+            ret = subprocess.check_output(cmd)
+        except Exception as e:
+            log.error("[-] Error running command ({0}): {1}".format(e.errno, e.strerror))
+            raise CommandError
+
+        return ret.strip()
+
+
+    def vminfo(self, element=None):
+        """Returns a dictionary with all available information for the
+        Virtual Machine."""
+        raise
+
+    def create_vm(self):
+        """Create a new Virtual Machine."""
+        raise
+
+    def delete_vm(self):
+        """Delete an existing Virtual Machine and its associated files."""
+        raise
+
+    def ramsize(self, ramsize):
+        """Modify the amount of RAM available for this Virtual Machine."""
+        raise
+
+    def vramsize(self, width, height):
+        """Modify the amount of Video memory available for this Virtual
+        Machine."""
+        raise
+
+    def os_type(self, osversion):
+        """Set the OS type."""
+        raise
+
+    def create_hd(self, hdd_path, fsize="1GB", adapter_type='ide', disk_type='0'):
+        """Create a harddisk."""
+        raise
+
+    def immutable_hd(self, adapter_type, mode="persistent"):
+        """Make a harddisk immutable or normal."""
+        raise
+
+    def remove_hd(self, hdd_path):
+        """Remove a harddisk."""
+        raise
+
+    def clone_hd(self, hdd_outpath):
+        """Clone a harddisk."""
+        raise
+
+    def cpus(self, count):
+        """Set the number of CPUs to assign to this Virtual Machine."""
+        raise
+
+    def attach_iso(self, iso):
+        """Attach a ISO file as DVDRom drive."""
+        raise
+
+    def detach_iso(self):
+        """Detach the ISO file in the DVDRom drive."""
+        raise
+
+    def set_field(self, key, value):
+        """Set a specific field of a Virtual Machine."""
+        raise
+
+    def modify_mac(self, macaddr=None, index=0):
+        """Modify the MAC address of a Virtual Machine."""
+        raise
+
+    def network_index(self):
+        """Get the index for the next network interface."""
+        raise
+
+    def hostonly(self, nictype="e1000", macaddr=None, adapter=None):
+        """Configure hostonly for the Virtual Machine."""
+        raise
+
+    def nat(self, nictype="e1000", macaddr=None, adapter=None):
+        """Configure NAT for the Virtual Machine."""
+        raise
+
+    def hwvirt(self, enable=True):
+        """Enable or disable the usage of Hardware Virtualization."""
+        raise
+
+    def start_vm(self, visible=False):
+        """Start the associated Virtual Machine."""
+        raise
+
+    def list_snapshots(self):
+        """ Returns a list of snapshots for the specific VMX file """
+        raise
+
+    def snapshot(self, label):
+        """Take a snapshot of the associated Virtual Machine."""
+        raise
+
+    def restore_snapshot(self, label=None):
+        """ Revert to the latest snapshot available """
+        raise
+
+    def delete_snapshot(self, label, recursive=False):
+        raise
+
+    def stopvm(self, powertype="soft"):
+        """Stop the associated Virtual Machine."""
+        raise
+
+    def remotedisplay(self, port=5901, password=""):
+        """ Provides a VNC/RDP interface for GUI communication over the network """
+        raise
+
+    def enableparavirt(self):
+        raise
+
+    def export(self, filepath):
+        raise
+
