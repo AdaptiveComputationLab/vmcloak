@@ -1,0 +1,95 @@
+<domain type="kvm">
+    <uuid>96e8fa98-365a-4172-96a2-33437c4c984e</uuid>
+    <name>instance-00003ac2</name>
+    <memory unit='KiB'>1048576</memory>
+    <vcpu cpuset="4-23">1</vcpu>
+    <sysinfo type="smbios">
+        <bios>
+            <entry name='vendor'>LENOVO</entry>
+            <entry name='version'>MB52.88Z.0088.B05.0904162222</entry>
+            <entry name='date'>08/10/13</entry>
+            <entry name='release'>5.9</entry>
+        </bios>
+        <system>
+            <entry name="manufacturer">OpenStack Foundation</entry>
+            <entry name="product">OpenStack Nova</entry>
+            <entry name="version">2013.2-netease.461</entry>
+            <entry name="serial">4c573876-6ff1-11e1-8f7b-3440b5db35b0</entry>
+            <entry name="uuid">96e8fa98-365a-4172-96a2-33437c4c984e</entry>
+            <entry name="family">Ultrabook</entry>
+        </system>
+        <baseBoard>
+            <entry name='manufacturer'>LENOVO</entry>
+            <entry name='product'>20BE0061MC</entry>
+            <entry name='version'>0B98401 Pro</entry>
+            <entry name='serial'>W1KS427111E</entry>
+        </baseBoard>
+        <chassis>
+            <entry name='manufacturer'>Dell Inc.</entry>
+            <entry name='version'>2.12</entry>
+            <entry name='serial'>65X0XF2</entry>
+            <entry name='asset'>40000101</entry>
+            <entry name='sku'>Type3Sku1</entry>
+        </chassis>
+        <oemStrings>
+            <entry>myappname:Extended version info: 1.00.00</entry>
+            <entry>otherappname:Extended revision info: 1A</entry>
+        </oemStrings>
+    </sysinfo>
+    <blkiotune>
+    <device>
+        <path>/dev/sda</path>
+        <weight>100</weight>
+    </device>
+    </blkiotune>
+    <os>
+        <type>hvm</type>
+        <boot dev="hd"/>
+        <boot dev="cdrom"/>
+        <smbios mode="sysinfo"/>
+    </os>
+    <features>
+        <acpi/>
+        <apic/>
+    </features>
+    <cputune>
+        <shares>2048</shares>
+        <quota>82500</quota>
+        <period>100000</period>
+    </cputune>
+    <clock offset="utc">
+        <timer name="pit" tickpolicy="delay"/>
+        <timer name="rtc" tickpolicy="catchup"/>
+    </clock>
+    <cpu mode="host-model" match="exact"/>
+    <devices>
+        <disk type='file' device='cdrom'>
+            <driver name='qemu' type='raw'/>
+            <source file='/home/store/1/vpe/iso/CentOS-6.5-x86_64-bin-DVD1.iso'/>
+            <target dev='hdc' bus='ide'/>
+            <readonly/>
+            <alias name='ide0-1-0'/>
+            <address type='drive' controller='0' bus='1' target='0' unit='0'/>
+        </disk>
+        <disk type="file" device="disk">
+            <driver name="qemu" type="qcow2" cache="none"/>
+            <source file="/data/nova/instances/96e8fa98-365a-4172-96a2-33437c4c984e/disk"/>
+            <target bus="virtio" dev="vda"/>
+        </disk>
+        <interface type="bridge">
+            <mac address="fa:16:3e:38:94:bb"/>
+            <model type="virtio"/>
+            <source bridge="br-int"/>
+            <target dev="tapba7b4aac-f6"/>
+            <virtualport type="openvswitch">
+                <parameters interfaceid="ba7b4aac-f6a5-4d98-bd9d-f3ce95991d3f"/>
+            </virtualport>
+        </interface>
+        <serial type="file">
+            <source path="/data/nova/instances/96e8fa98-365a-4172-96a2-33437c4c984e/console.log"/>
+        </serial>
+        <serial type="pty"/>
+        <input type="tablet" bus="usb"/>
+        <graphics type="vnc" autoport="yes" keymap="en-us" listen="10.180.0.24"/>
+    </devices>
+</domain>
