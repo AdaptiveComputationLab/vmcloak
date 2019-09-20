@@ -252,6 +252,28 @@ def drop_privileges(user):
     except OSError as e:
         sys.exit("Failed to drop privileges: %s" % e)
 
+def append_child(element, child=None, etree_child=None):
+    """
+    Add child element to `element`.
+
+    :param element: element to add the child to
+    :type element: DOM element
+    :param child: child element to add to `element`
+    :type child: vmxml.Element object
+    :param etree_child: child element to add to `element`
+    :type child: etree.Element object
+
+    """
+    if child is not None and etree_child is None:
+        element.append(child._elem)
+    elif child is None and etree_child is not None:
+        element.append(etree_child)
+    else:
+        raise RuntimeError(
+            'append_child invoked with child=%r etree_child=%r' % (
+                child, etree_child))
+
+
 def import_plugins(dirpath, module_prefix, namespace, class_):
     """Import plugins of type `class` located at `dirpath` into the
     `namespace` that starts with `module_prefix`. If `dirpath` represents a

@@ -7,6 +7,8 @@ import logging
 import os
 import subprocess
 import time
+import libvirt
+import  xml.etree.ElementTree as ET
 
 from vmcloak.abstract import Machinery
 from vmcloak.data.config import VBOX_CONFIG
@@ -14,7 +16,8 @@ from vmcloak.exceptions import CommandError
 from vmcloak.paths import get_path
 from vmcloak.rand import random_mac
 from vmcloak.repository import vms_path
-
+from vmcloak.constants import VMCLOAK_ROOT
+from vmcloak.vmxml import Element
 log = logging.getLogger(__name__)
 
 class VirtualBox(Machinery):
@@ -243,9 +246,23 @@ class KVM(Machinery):
     """Virtualization layer for KVM using libvirt utility."""
     FIELDS = {}
 
-    def __init__(self, vmx_path, *args, **kwargs):
+    def __init__(self, domain_path, *args, **kwargs):
         Machinery.__init__(self, *args, **kwargs)
         self.virsh = get_path("virsh")
+        self.qemu_img = get_path("qemu-img")
+        self.domain_path = domain_path
+        self.domain = ET.parse(os.path.join(VMCLOAK_ROOT, 'data/template/qemu.xml'))
+
+        if os.getenv("LIBVIRT_DEFAULT_URI"):
+            QEMU_URI = os.getenv("LIBVIRT_DEFAULT_URI")
+        else:
+            QEMU_URI = "qemu:///system"
+
+        self.virt_conn = libvirt.open(QEMU_URI)
+
+        if self.virt_conn == None:
+            log.error('Failed to open connection to qemu:///system')
+            exit(1)
 
     def _call(self, *args, **kwargs):
         cmd = list(args)
@@ -260,7 +277,7 @@ class KVM(Machinery):
             log.debug("Running command: %s", cmd)
             ret = subprocess.check_output(cmd)
         except Exception as e:
-            log.error("[-] Error running command ({0}): {1}".format(e.errno, e.strerror))
+            log.error("[-] Error running command ({0}): {1}".format(" ".join(e.cmd), e.output.strip()))
             raise CommandError
 
         return ret.strip()
@@ -273,28 +290,66 @@ class KVM(Machinery):
 
     def create_vm(self):
         """Create a new Virtual Machine."""
-        raise
+        qemu_temp = os.path.join(VMCLOAK_ROOT, 'data/template/qemu.xml')
+        xmlconfig = open(qemu_temp).read()
+        self.dom = self.virt_conn.defineXML(xmlconfig)
+        if self.dom == None:
+            log.error('Failed to define a domain from an XML definition.')
+            exit(1)
 
     def delete_vm(self):
         """Delete an existing Virtual Machine and its associated files."""
-        raise
+        return self.dom.undefine()
 
-    def ramsize(self, ramsize):
+    def ramsize(self, ramsize, unit='MiB'):
         """Modify the amount of RAM available for this Virtual Machine."""
-        raise
+        if self.domain.xpath('//memory'):
+            memory = self.domain.xpath('//memory')[0]
+            memory.text = ramsize
+            memory.attrib['unit'] = unit
 
-    def vramsize(self, width, height):
+    def vramsize(self, vramsize, vtype='vga'):
         """Modify the amount of Video memory available for this Virtual
-        Machine."""
-        raise
+        Machine.
+        <devices>
+        <video>
+            <model type='vga' vram='16384' heads='1'>
+                <acceleration accel3d='yes' accel2d='yes'/>
+            </model>
+        </video>
+        </devices>
+        """
+        devices = self.domain.xpath('//devices')
+        video = self.domain.xpath('//devices/video')
+        if not video:
+            video = Element('video')
+            modelAttrs = {
+                'type': vtype,
+                'vram': vramsize,
+                'heads': '1'
+            }
+            model = Element('model', **modelAttrs)
+            video.appendChild(model)
+            acceleration = Element('acceleration', accel2d="yes", accel3d="yes")
+            model.appendChild(acceleration)
+            devices.insert(0, video)
+        else:
+            try:
+                model = devices.iter('model').next()
+                model.attrib['vram'] = vramsize
+            except StopIteration:
+                log.debug('corrupted video element found!')
+                exit(1)
+
 
     def os_type(self, osversion):
         """Set the OS type."""
-        raise
+        pass
 
-    def create_hd(self, hdd_path, fsize="1GB", adapter_type='ide', disk_type='0'):
+
+    def create_hd(self, disk_path, fmt='qcow2', size='10G'):
         """Create a harddisk."""
-        raise
+        self._call(self.qemu_img, 'create', '-f', fmt, disk_path, size)
 
     def immutable_hd(self, adapter_type, mode="persistent"):
         """Make a harddisk immutable or normal."""
@@ -310,7 +365,9 @@ class KVM(Machinery):
 
     def cpus(self, count):
         """Set the number of CPUs to assign to this Virtual Machine."""
-        raise
+        if self.domain.xpath('//vcpu'):
+            vcpu = self.domain.xpath('//vcpu')[0]
+            vcpu.text = count
 
     def attach_iso(self, iso):
         """Attach a ISO file as DVDRom drive."""

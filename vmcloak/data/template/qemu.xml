@@ -1,8 +1,8 @@
 <domain type="kvm">
     <uuid>96e8fa98-365a-4172-96a2-33437c4c984e</uuid>
     <name>instance-00003ac2</name>
-    <memory unit='KiB'>1048576</memory>
-    <vcpu cpuset="4-23">1</vcpu>
+    <memory unit='MiB'>1048576</memory>
+    <vcpu>1</vcpu>
     <sysinfo type="smbios">
         <bios>
             <entry name='vendor'>LENOVO</entry>
@@ -36,12 +36,6 @@
             <entry>otherappname:Extended revision info: 1A</entry>
         </oemStrings>
     </sysinfo>
-    <blkiotune>
-    <device>
-        <path>/dev/sda</path>
-        <weight>100</weight>
-    </device>
-    </blkiotune>
     <os>
         <type>hvm</type>
         <boot dev="hd"/>
@@ -65,31 +59,23 @@
     <devices>
         <disk type='file' device='cdrom'>
             <driver name='qemu' type='raw'/>
-            <source file='/home/store/1/vpe/iso/CentOS-6.5-x86_64-bin-DVD1.iso'/>
+            <source file=''/>
             <target dev='hdc' bus='ide'/>
             <readonly/>
             <alias name='ide0-1-0'/>
             <address type='drive' controller='0' bus='1' target='0' unit='0'/>
         </disk>
-        <disk type="file" device="disk">
-            <driver name="qemu" type="qcow2" cache="none"/>
-            <source file="/data/nova/instances/96e8fa98-365a-4172-96a2-33437c4c984e/disk"/>
-            <target bus="virtio" dev="vda"/>
-        </disk>
-        <interface type="bridge">
+        <interface type="network">
             <mac address="fa:16:3e:38:94:bb"/>
             <model type="virtio"/>
-            <source bridge="br-int"/>
-            <target dev="tapba7b4aac-f6"/>
+            <source network="default"/>
+            <target dev="vnet0"/>
             <virtualport type="openvswitch">
                 <parameters interfaceid="ba7b4aac-f6a5-4d98-bd9d-f3ce95991d3f"/>
             </virtualport>
         </interface>
-        <serial type="file">
-            <source path="/data/nova/instances/96e8fa98-365a-4172-96a2-33437c4c984e/console.log"/>
-        </serial>
         <serial type="pty"/>
         <input type="tablet" bus="usb"/>
-        <graphics type="vnc" autoport="yes" keymap="en-us" listen="10.180.0.24"/>
+        <graphics type="vnc" autoport="yes" keymap="en-us" listen="192.168.122.1"/>
     </devices>
 </domain>

@@ -25,7 +25,7 @@ from vmcloak.misc import ipaddr_increase
 from vmcloak.rand import random_string
 from vmcloak.repository import (
     image_path, Session, Image, Snapshot, iso_dst_path, SCHEMA_VERSION,
-    db_migratable
+    db_migratable, vms_path
 )
 from vmcloak.winxp import WindowsXP
 from vmcloak.win7 import Windows7x86, Windows7x64
@@ -245,8 +245,6 @@ def init(name, winxp, win7x86, win7x64, win81x86, win81x64, win10x86, win10x64,
             print>>f, "set %s=%s" % (key, value)
 
     iso_path = os.path.join(tempdir, "%s.iso" % name)
-    hdd_path = os.path.join(image_path, "%s.vdi" % name)
-    m = VirtualBox(name=name)
 
     if not h.buildiso(mount, iso_path, bootstrap, tempdir):
         shutil.rmtree(bootstrap)
@@ -255,6 +253,8 @@ def init(name, winxp, win7x86, win7x64, win81x86, win81x64, win10x86, win10x64,
     shutil.rmtree(bootstrap)
 
     if vm == "virtualbox":
+        hdd_path = os.path.join(image_path, "%s.vdi" % name)
+        m = VirtualBox(name=name)
         m.create_vm()
         m.os_type(osversion)
         m.paravirtprovider(paravirtprovider)
@@ -265,6 +265,44 @@ def init(name, winxp, win7x86, win7x64, win81x86, win81x64, win10x86, win10x64,
         m.create_hd(hdd_path, hddsize * 1024)
         m.attach_iso(iso_path)
         m.hostonly(nictype=h.nictype, adapter=adapter)
+
+        if vrde:
+            m.vrde(port=vrde_port)
+
+        log.info("Starting the Virtual Machine %r to install Windows.", name)
+        m.start_vm(visible=vm_visible)
+
+        m.wait_for_state(shutdown=True)
+
+        m.detach_iso()
+        os.unlink(iso_path)
+
+        m.remove_hd()
+        m.compact_hd(hdd_path)
+        m.delete_vm()
+
+    if vm == "kvm":
+        vm_path = os.path.join(vms_path, name)
+        img_path = os.path.join(image_path, name)
+        hdd_path = os.path.join(img_path, "%s.qcow2" % name)
+        domain_path = os.path.join(vm_path, "%s.xml" % name)
+
+        if not os.path.isdir(vm_path):
+            os.mkdir(vm_path)
+        if not os.path.isdir(img_path):
+            os.mkdir(img_path)
+
+        m = KVM(domain_path, name=name)
+        m.os_type(osversion)
+        m.paravirtprovider(paravirtprovider)
+        m.cpus(cpus)
+        m.mouse("usbtablet")
+        m.ramsize(ramsize)
+        m.vramsize(vramsize)
+        m.create_hd(hdd_path, hddsize * 1024)
+        m.attach_iso(iso_path)
+        m.hostonly(nictype=h.nictype, adapter=adapter)
+        m.create_vm()
 
         if vrde:
             m.vrde(port=vrde_port)
