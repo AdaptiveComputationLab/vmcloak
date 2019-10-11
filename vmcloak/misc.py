@@ -226,13 +226,15 @@ def register_cuckoo(hostonly_ip, tags, vmname, cuckoo_dirpath, rdp_port=None):
 def wait_for_host(ipaddr, port):
     # Wait for the Agent to come up with a timeout of 1 second.
     while True:
-        try:
-            socket.create_connection((ipaddr, port), 1).close()
+        s =  socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        result = s.connect_ex((ipaddr, int(port)))
+        s.close()
+
+        if result:
+            log.debug("Waiting for host %s:%s"% (ipaddr, str(port)))
+            time.sleep(1)
+        else:
             break
-        except socket.error:
-            log.debug("Waiting for host %s", ipaddr)
-            pass
-        time.sleep(1)
 
 def drop_privileges(user):
     if not HAVE_PWD:
