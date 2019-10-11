@@ -144,11 +144,16 @@ class VirtualBox(Machinery):
                    type_="dvddrive", port=1, device=0, medium="emptydrive")
 
     def set_field(self, key, value):
+        # dirty hack
+        if isinstance(value, str):
+            if value.find(" "):
+                value = "\"" + value + "\""
         return self._call("setextradata", self.name, key, value)
 
     def modify_mac(self, macaddr=None, index=1):
         if macaddr is None:
-            macaddr = random_mac()
+            #macaddr = random_mac()
+            return
 
         # VBoxManage prefers MAC addresses without colons.
         vbox_mac = macaddr.replace(":", "")

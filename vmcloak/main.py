@@ -13,6 +13,7 @@ import tempfile
 import time
 
 from sqlalchemy.orm.session import make_transient
+from sys import exit
 
 import vmcloak.dependencies
 
@@ -25,7 +26,7 @@ from vmcloak.misc import ipaddr_increase
 from vmcloak.rand import random_string
 from vmcloak.repository import (
     image_path, Session, Image, Snapshot, iso_dst_path, SCHEMA_VERSION,
-    db_migratable
+    db_migratable, vms_path
 )
 from vmcloak.winxp import WindowsXP
 from vmcloak.win7 import Windows7x86, Windows7x64
@@ -128,6 +129,7 @@ def clone(name, outname):
 @click.option("--adapter", default="vboxnet0", help="Network adapter.")
 @click.option("--netmask", default="255.255.255.0", help="Guest IP address.")
 @click.option("--gateway", default="192.168.56.1", help="Guest IP address.")
+@click.option("--mac", default=None, help="Interface MAC address.")
 @click.option("--dns", default="8.8.8.8", help="DNS Server.")
 @click.option("--cpus", default=1, help="CPU count.")
 @click.option("--ramsize", type=int, help="Memory size")
@@ -139,14 +141,15 @@ def clone(name, outname):
 @click.option("--vrde", is_flag=True, help="Enable the VirtualBox Remote Display Protocol.")
 @click.option("--vrde-port", default=3389, help="Specify the VRDE port.")
 @click.option("--python-version", default="2.7.6", help="Which Python version do we install on the guest?")
+@click.option("--extra-config", default=None, help="Set extra configuration for VM")
 @click.option("--paravirtprovider", default="default",
               help="Select paravirtprovider for Virtualbox none|default|legacy|minimal|hyperv|kvm")
 @click.option("-d", "--debug", is_flag=True, help="Install Virtual Machine in debug mode.")
 @click.option("-v", "--verbose", is_flag=True, help="Verbose logging.")
 def init(name, winxp, win7x86, win7x64, win81x86, win81x64, win10x86, win10x64,
          product, vm, iso_mount, serial_key, ip, port, adapter, netmask,
-         gateway, dns, cpus, ramsize, vramsize, hddsize, tempdir, resolution,
-         vm_visible, vrde, vrde_port, python_version, paravirtprovider, debug,
+         gateway, mac, dns, cpus, ramsize, vramsize, hddsize, tempdir, resolution,
+         vm_visible, vrde, vrde_port, python_version, paravirtprovider, extra_config, debug,
          verbose):
 
     if verbose:
@@ -245,7 +248,6 @@ def init(name, winxp, win7x86, win7x64, win81x86, win81x64, win10x86, win10x64,
             print>>f, "set %s=%s" % (key, value)
 
     iso_path = os.path.join(tempdir, "%s.iso" % name)
-    hdd_path = os.path.join(image_path, "%s.vdi" % name)
     m = VirtualBox(name=name)
 
     if not h.buildiso(mount, iso_path, bootstrap, tempdir):
@@ -255,16 +257,26 @@ def init(name, winxp, win7x86, win7x64, win81x86, win81x64, win10x86, win10x64,
     shutil.rmtree(bootstrap)
 
     if vm == "virtualbox":
+        vm_path = os.path.join(vms_path, name)
+        img_path = os.path.join(image_path, name)
+        hdd_path = os.path.join(img_path, "%s.vdi" % name)
         m.create_vm()
+
+        if extra_config is not None:
+            if extra_config:
+                for k,v in extra_config.items():
+                    m.set_field(k, v)
+
         m.os_type(osversion)
         m.paravirtprovider(paravirtprovider)
         m.cpus(cpus)
         m.mouse("usbtablet")
         m.ramsize(ramsize)
         m.vramsize(vramsize)
+        m.hostonly(nictype=h.nictype, adapter=adapter, macaddr=mac)
+
         m.create_hd(hdd_path, hddsize * 1024)
         m.attach_iso(iso_path)
-        m.hostonly(nictype=h.nictype, adapter=adapter)
 
         if vrde:
             m.vrde(port=vrde_port)
@@ -277,9 +289,9 @@ def init(name, winxp, win7x86, win7x64, win81x86, win81x64, win10x86, win10x64,
         m.detach_iso()
         os.unlink(iso_path)
 
-        m.remove_hd()
+        #m.remove_hd()
         m.compact_hd(hdd_path)
-        m.delete_vm()
+        #m.delete_vm()
     else:
         log.info("You can find your deployment ISO image from : %s" % iso_path)
 

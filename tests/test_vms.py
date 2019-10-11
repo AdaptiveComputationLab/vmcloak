@@ -1,10 +1,11 @@
 # Copyright (C) 2016 Jurriaan Bremer.
 # This file is part of VMCloak - http://www.vmcloak.org/.
 # See the file 'docs/LICENSE.txt' for copying permission.
-
+from __future__ import print_function
 import json
 import os.path
 import tempfile
+import time
 
 from vmcloak import main, misc, agent, vm
 from vmcloak.repository import Session, Image
@@ -12,7 +13,7 @@ from vmcloak.repository import Session, Image
 dirpath = tempfile.mkdtemp()
 
 # To be populated by the user of the unittests.
-config = json.load(open(os.path.expanduser("~/.vmcloak/config.json"), "rb"))
+#config = json.load(open(os.path.expanduser("~/.vmcloak/config.json"), "rb"))
 
 # Database session.
 session = Session()
@@ -27,6 +28,49 @@ def genname(osversion):
 def test_ipaddr_increase():
     assert misc.ipaddr_increase("1.2.3.4") == "1.2.3.5"
     assert misc.ipaddr_increase("192.168.56.101") == "192.168.56.102"
+
+def test_win7x86():
+    """ Test windows 7 X86 """
+    config = json.load(open(os.path.expanduser("~/.vmcloak/config/win7x86_vbox.conf"), "rb"))
+    machinery = 'virtualbox'
+    names = config.keys()
+
+    for name in names:
+        if name == 'win7x86_conf2':
+            continue
+        start_time = time.time()
+        win_conf = config[name]
+        ip = win_conf["network"]["ip"]
+        port = win_conf["network"]["port"]
+        dns = win_conf["network"]["dns"]
+        mac = win_conf["network"]["mac"] if 'mac' in win_conf["network"].keys() else None
+        iso = win_conf["iso"]
+        cpus = win_conf["config"]["cpus"]
+        ramsize = win_conf["config"]["ram_size"]
+        vramsize = win_conf["config"]["vram_size"]
+        gateway = win_conf["network"]["gateway"]
+        extra_config = win_conf["extraConfig"][machinery]
+
+        call(
+            main.init, name,"--vm", machinery,"--win7x86",
+            "--ip",  ip, "--port", port, "--ramsize", ramsize, "--cpus", cpus,
+            "--tempdir", dirpath, "--iso-mount", iso, "--vramsize", vramsize ,
+            "--dns", dns, "--mac", mac, "--gateway", gateway, "--debug",
+            "--extra-config", extra_config
+        )
+
+    m = vm.VirtualBox(name)
+    m.start_vm()
+
+    misc.wait_for_host(ip, port)
+
+    # Very basic integrity checking of the VM.
+    a = agent.Agent(ip, port)
+    assert a.environ()["SYSTEMDRIVE"] == "C:"
+
+    a.shutdown()
+    m.wait_for_state(shutdown=True)
+    print("--- %s seconds to finish %s installation ---" % (time.time() - start_time, name))
 
 def test_winxp():
     ip, port = "192.168.56.103", 13337
@@ -190,3 +234,6 @@ def test_win10x64():
 
     image = session.query(Image).filter_by(name=name).first()
     os.remove(image.path)
+
+if __name__ == "__main__":
+    test_win7x86()
