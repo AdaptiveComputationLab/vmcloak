@@ -36,9 +36,8 @@ def test_win7x86():
     names = config.keys()
 
     for name in names:
-        if name == 'win7x86_conf2':
-            continue
         start_time = time.time()
+        vm_name = name + "_vbox"
         win_conf = config[name]
         ip = win_conf["network"]["ip"]
         port = win_conf["network"]["port"]
@@ -52,14 +51,14 @@ def test_win7x86():
         extra_config = win_conf["extraConfig"][machinery]
 
         call(
-            main.init, name,"--vm", machinery,"--win7x86",
+            main.init, vm_name,"--vm", machinery,"--win7x86",
             "--ip",  ip, "--port", port, "--ramsize", ramsize, "--cpus", cpus,
             "--tempdir", dirpath, "--iso-mount", iso, "--vramsize", vramsize ,
             "--dns", dns, "--mac", mac, "--gateway", gateway, "--debug",
             "--extra-config", extra_config
         )
 
-    m = vm.VirtualBox(name)
+    m = vm.VirtualBox(vm_name)
     m.start_vm()
 
     misc.wait_for_host(ip, port)
