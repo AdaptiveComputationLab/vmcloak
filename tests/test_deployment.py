@@ -3,16 +3,17 @@ import random
 import jinja2
 import os
 import logging
+import ipdb
 
 from string import ascii_letters
 from vmcloak.repository import Image, Session, Snapshot
-from vmcloak.vm import VMWare, VirtualBox
+from vmcloak.vm import VirtualBox
 from vmcloak.constants import VMCLOAK_ROOT
 from vmcloak.main import do_snapshot
 from vmcloak.misc import wait_for_host
 from vmcloak.agent import Agent
 from vmcloak.dependencies.pillow import Pillow
-from vmcloak.winxp import WindowsXPx86, WindowsXPx64
+from vmcloak.winxp import WindowsXP
 from vmcloak.win7 import Windows7x86, Windows7x64
 from vmcloak.win81 import Windows81x86, Windows81x64
 from vmcloak.win10 import Windows10x86, Windows10x64
@@ -40,8 +41,7 @@ def template_parser(tpl_name, mode, config):
 
 def config_writer():
     handlers = {
-        "winxpx86": WindowsXPx86,
-        "winxpx64": WindowsXPx64,
+        "winxp": WindowsXP,
         "win7x86": Windows7x86,
         "win7x64": Windows7x64,
         "win81x86": Windows81x86,
@@ -58,37 +58,9 @@ def config_writer():
         name = image.name
         h = handlers[image.osversion]
         snapshots = session.query(Snapshot).filter_by(image_id=image.id)
-
-        if machinery == "vmware":
-            vmx_path = image.config
-            if not os.path.exists(vmx_path):
-                continue
-            vm = VMWare(vmx_path, name=name)
-            snapshots = vm.list_snapshots()
-            if not snapshots:
-                snapshot = genname(name)
-
-                vm.start_vm(visible=True)
-
-                wait_for_host(image.ipaddr, image.port)
-
-                a = Agent(image.ipaddr, image.port)
-                a.ping()
-
-                Pillow(a=a, h=h).run()
-
-                vm.snapshot(snapshot)
-
-                vm.stop_vm()
-                vm.wait_for_state(shutdown=True)
-
-                snapshots = vm.list_snapshots()
-                #TODO: change ipaddr of each snapshot from default one
-            vmware_machines[name] = {'ipaddr': ipaddr,
-                                    'snapshot': snapshots[0],
-                                    'vmx_path': vmx_path}
+	ipdb.set_trace()	
         if machinery == "virtualbox":
-            if not snapshots:
+            if not snapshots.first():
                 snapshot = genname(name)
                 vm = VirtualBox(name)
                 vm.start_vm(visible=False)
@@ -107,8 +79,6 @@ def config_writer():
                 vbox_machines[name] = {'snapshot': snapshot,
                                         'ipaddr': ipaddr}
 
-    if vmware_machines:
-        template_parser("vmware", "nogui", vmware_machines)
     if vbox_machines:
         template_parser("virtualbox", "headless", vbox_machines)
 
