@@ -1,9 +1,10 @@
 #!/usr/bin/env python
+from __future__ import print_function
 import random
 import jinja2
 import os
 import logging
-import ipdb
+import time
 
 from string import ascii_letters
 from vmcloak.repository import Image, Session, Snapshot
@@ -53,13 +54,14 @@ def config_writer():
     images = session.query(Image).all()
 
     for image in images:
+	start_time = time.time()
         ipaddr = image.ipaddr
         machinery = image.vm
         name = image.name
         h = handlers[image.osversion]
         snapshots = session.query(Snapshot).filter_by(image_id=image.id)
-	ipdb.set_trace()	
-        if machinery == "virtualbox":
+        
+	if machinery == "virtualbox":
             if not snapshots.first():
                 snapshot = genname(name)
                 vm = VirtualBox(name)
@@ -74,13 +76,15 @@ def config_writer():
 
                 vm.snapshot(snapshot)
 
-                vm.stop_vm()
+                vm.stopvm()
                 vm.wait_for_state(shutdown=True)
                 vbox_machines[name] = {'snapshot': snapshot,
                                         'ipaddr': ipaddr}
+		print("--- %s seconds to finish %s config deployment ---" % (time.time() - start_time, name))
 
     if vbox_machines:
         template_parser("virtualbox", "headless", vbox_machines)
+
 
 if __name__ == '__main__':
     config_writer()
