@@ -202,8 +202,15 @@ class VirtualBox(Machinery):
         self._call("modifyvm", self.name, hwvirtex="on" if enable else "off")
 
     def start_vm(self, visible=False):
-        return self._call("startvm", self.name,
+        try:
+            return self._call("startvm", self.name,
                           type_="gui" if visible else "headless")
+        except CommandError:
+            conf_path = os.path.join(vms_path, self.name, self.name+'.vbox')
+            self._call("registervm", conf_path)
+            return self._call("startvm", self.name,
+                          type_="gui" if visible else "headless")
+
 
     def snapshot(self, label, description=""):
         return self._call("snapshot", self.name, "take", label,
