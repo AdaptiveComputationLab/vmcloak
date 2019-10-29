@@ -17,7 +17,7 @@ from vmcloak.misc import wait_for_host
 try:
     from vmcloak.vm import VMWare, VirtualBox
 except ImportError:
-    from vmcloak.vm import KVM, VirtualBox
+    from vmcloak.vm import VirtualBox
 
 logging.basicConfig()
 log = logging.getLogger("vmcloak")
@@ -70,6 +70,7 @@ def test_pafish():
         report_path = "C:\\%s"%report_name
 
         if backend == "vmware":
+            continue
             vmx_path = image.config
             if vmx_path is None:
                 continue
@@ -82,15 +83,8 @@ def test_pafish():
             vm = VirtualBox(name=name)
             snapshots = session.query(Snapshot).filter_by(image_id=image.id).all()
 
-        elif backend == "kvm":
-            domain_path = image.config
-            if not os.path.exists(domain_path):
-                continue
-            vm =KVM(domain_path, name=name)
-            vm.create_vm()
-            snapshots = vm.list_snapshots()
-
         else:
+            continue
             log.error("This backend is not supported so far...")
             exit(1)
 
